@@ -1,184 +1,183 @@
-# CHMv2 Canopy Height Inference Pipeline
+# 🌲 openCHM: Cloud-Native Canopy Height Mapping
 
-**DINOv3 + DPT depth estimation head — per-pixel canopy height from RGB satellite imagery**
+![Python](https://img.shields.io/badge/python-3.11-blue.svg)
+![PyTorch](https://img.shields.io/badge/PyTorch-MPS%20Ready-ee4c2c.svg)
+![Transformers](https://img.shields.io/badge/HuggingFace-Transformers-yellow)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-Based on:
-- Paper: [CHMv2: Improvements in Global Canopy Height Mapping using DINOv3](https://arxiv.org/abs/2603.06382)
-- Backbone repo: [facebookresearch/dinov3](https://github.com/facebookresearch/dinov3)
-- Model weights: [facebook/dinov3-vitl16-chmv2-dpt-head on HuggingFace](https://huggingface.co/facebook/dinov3-vitl16-chmv2-dpt-head)
+**openCHM** is an automated, end-to-end inference pipeline that adapts Meta's high-resolution **CHMv2 (DINOv3 + DPT Head)** model to run on globally available Sentinel-2 RGB imagery.
 
----
-
-## What does this pipeline do?
-
-| Step | Description |
-|------|-------------|
-| Load image | Reads a 3-band RGB GeoTIFF (Sentinel-2 or any optical imagery) |
-| Tile | Splits the scene into overlapping patches (default 512×512 px) |
-| Infer | Runs CHMv2 (DINOv3 ViT-L/16 + DPT head) on every patch |
-| Mosaic | Blends patches back into a full-scene canopy height map |
-| Visualise | Saves per-patch RGB/heatmap panels + DINOv3 embedding PCA maps + full mosaic |
-| Export | Saves georeferenced GeoTIFF of canopy heights in **metres** |
-
-### Model inputs & outputs
-
-| | Detail |
-|--|--------|
-| **Input** | 3-band RGB image (uint8 or uint16 GeoTIFF). The processor auto-normalises. |
-| **Output (primary)** | Float32 raster: per-pixel **canopy height in metres** (range 0–96 m) |
-| **Output (auxiliary)** | DINOv3 backbone feature embeddings → visualised as PCA heatmap |
-
-> **Note on Sentinel-2:** The model was trained on high-resolution sub-metre imagery (Maxar/Planet). With Sentinel-2 (10 m GSD) the predictions are still meaningful but spatially coarser. For best results use 0.5–2 m GSD imagery.
+Built as a practical geospatial inference engine, this pipeline handles fixed-range reflectance normalization, batched Vision Transformer (ViT) inference, and geospatial mosaicking, optimized for local Apple Silicon (M1/M2/M3) execution.
 
 ---
 
-## Getting model weights
+## 🚀 The Visuals
 
-### Option A — HuggingFace Hub (recommended, automatic)
-The weights download automatically on first run from HuggingFace:
-```
-facebook/dinov3-vitl16-chmv2-dpt-head
-```
-No account or request form needed. ~1.2 GB download on first run.
+Create a `docs/images/` folder and place your exported figures there.
 
-### Option B — Meta AI direct download
-1. Request access at: https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/
-2. You will receive an email with a download URL.
-3. Use `wget` (not a browser) to download.
-4. Point to local weights via `torch.hub.load(..., weights="/path/to/weights.pth")`
+### 1. Full-Scene Inference
+![Full Scene Mosaic](docs/images/mosaic_visualisation.png)
+- **Left:** Upscaled, normalized Sentinel-2 RGB input.
+- **Center:** Predicted Canopy Height Model (CHM) in meters.
+- **Right:** DINOv3 backbone PCA embeddings (latent feature similarity map).
+
+### 2. Micro-Structural Analysis (Patch Level)
+![Patch 0060 Analysis](docs/images/patch_0060.png)
+- Patch-level (512x512) CHM output with corresponding local texture and structure patterns.
+
+### 3. Optional Post-Processing Charts
+- Add your downstream analytics chart at `docs/images/bar_chart.png` (for example, canopy density summaries by grid).
 
 ---
 
-## Installation (Mac M1, conda)
+## ✨ Core Features
+
+- **Smart physical normalization (`0-3000`)**
+  Reflectance values are clipped to a stable physical range before conversion to uint8, reducing washed-out urban artifacts and preserving canopy texture contrast.
+
+- **Bicubic upscaling with affine correction**
+  Sentinel-2 inputs are upscaled (default `5x`) using cubic resampling, and the GeoTIFF affine transform is updated so outputs remain geospatially aligned.
+
+- **Batched CHMv2 inference on Apple Metal (MPS)**
+  Overlapping 512x512 patches are processed in configurable batches (`model.batch_size`) for better throughput on M-series GPUs.
+
+- **Overlap-aware mosaicking**
+  Patch predictions are merged with feathered blending (`linear`) to reduce edge seams.
+
+- **Embedding visualization outputs**
+  Generates full-scene PCA-based embedding maps in addition to canopy height outputs.
+
+---
+
+## 🔐 Hugging Face Access (Required)
+
+Before first run:
+
+1. Open model page: [facebook/dinov3-vitl16-chmv2-dpt-head](https://huggingface.co/facebook/dinov3-vitl16-chmv2-dpt-head)
+2. Click **Request access** if your account is prompted for approval.
+3. Create a token at [Hugging Face Tokens](https://huggingface.co/settings/tokens)
+4. Use a token with at least **Read** scope.
+
+Authenticate from terminal:
 
 ```bash
-# 1. Clone the dinov3 repo (optional, for reference)
-git clone https://github.com/facebookresearch/dinov3.git
+# inside active environment
+pip install -U "huggingface_hub[cli]"
 
-# 2. Create and activate conda environment
-conda env create -f environment.yml
-conda activate chmv2
+# interactive login
+hf auth login
 
-# 3. Verify PyTorch sees MPS (Apple Metal GPU)
+# OR token-based login
+export HF_TOKEN="hf_xxx_your_token_here"
+hf auth login --token "$HF_TOKEN"
+
+# verify
+hf auth whoami
+```
+
+Optional (persist token in shell):
+
+```bash
+echo 'export HF_TOKEN="hf_xxx_your_token_here"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+---
+
+## 🛠️ Installation
+
+```bash
+# 1. Clone
+git clone https://github.com/yourusername/openCHM.git
+cd openCHM
+
+# 2. Create environment (choose one)
+micromamba env create -f environment.yml
+# or: conda env create -f environment.yml
+
+# 3. Activate
+micromamba activate chmv2
+# or: conda activate chmv2
+
+# 4. Verify MPS availability (Apple Silicon)
 python -c "import torch; print(torch.backends.mps.is_available())"
-```
 
-> **Tip for M1:** Set `device: "mps"` in `config.yaml` to use the Apple GPU for faster inference. If you hit MPS errors, fall back to `"cpu"` — 16 GB RAM handles 512×512 patches easily on CPU.
-
----
-
-## Project structure
-
-```
-chmv2_pipeline/
-├── run_inference.py          ← Entry point
-├── config.yaml               ← All parameters (edit this)
-├── environment.yml           ← Conda environment
-├── pipeline/
-│   ├── __init__.py
-│   ├── runner.py             ← Orchestrates all steps
-│   ├── model.py              ← Load CHMv2 from HuggingFace
-│   ├── tiling.py             ← Patch extraction & mosaicking
-│   ├── inference.py          ← Run model per patch
-│   └── visualise.py          ← All heatmap & mosaic visuals
-├── scripts/
-│   └── create_test_image.py  ← Generate synthetic Sentinel-2 for testing
-└── data/
-    ├── input/
-    │   └── sentinel2_rgb.tif  ← Put your image here
-    └── output/               ← All outputs written here
-        ├── canopy_height_mosaic.tif
-        ├── mosaic_visualisation.png
-        ├── mosaic_canopy_height.png
-        ├── mosaic_embeddings_pca.png
-        └── patches/
-            ├── patch_0000.png
-            ├── patch_0001.png
-            └── …
+# 5. HF auth (required once)
+hf auth login
 ```
 
 ---
 
-## Quick start commands
+## 💻 Usage
+
+### 1. Configure input
+Edit `config.yaml`:
+
+```yaml
+input:
+  image_path: "data/input/sentinel2_rgb.tif"
+  band_order: [1, 2, 3]
+  upscale_factor: 5
+
+model:
+  hf_model_id: "facebook/dinov3-vitl16-chmv2-dpt-head"
+  device: "mps"      # use "cpu" if needed
+  batch_size: 4
+```
+
+### 2. Run inference
 
 ```bash
-# Activate environment
-conda activate chmv2
-
-# (Optional) Create a synthetic test image if you don't have real data yet
-python scripts/create_test_image.py
-
-# Edit config.yaml to point to your image, then run:
 python run_inference.py --config config.yaml
 ```
 
-### Using your own Sentinel-2 image
-
-1. Download a Sentinel-2 L2A scene from [Copernicus Data Space](https://dataspace.copernicus.eu/) or [Earth Engine](https://earthengine.google.com/)
-2. Export bands B4 (Red), B3 (Green), B2 (Blue) as a 3-band GeoTIFF
-3. Update `config.yaml`:
-   ```yaml
-   input:
-     image_path: "data/input/your_sentinel2_scene.tif"
-     band_order: [1, 2, 3]   # Already in R,G,B order
-   ```
-4. Run: `python run_inference.py --config config.yaml`
+Pipeline outputs are written to `data/output/`:
+- `canopy_height_mosaic.tif`
+- `mosaic_visualisation.png`
+- `mosaic_canopy_height.png`
+- `mosaic_embeddings_pca.png`
+- `patches/patch_XXXX.png`
 
 ---
 
-## config.yaml parameters
+## 📁 Project Structure
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `input.image_path` | `data/input/sentinel2_rgb.tif` | Path to your RGB GeoTIFF |
-| `input.band_order` | `[1, 2, 3]` | Rasterio band indices (1-based) for R, G, B |
-| `model.hf_model_id` | `facebook/dinov3-vitl16-chmv2-dpt-head` | HuggingFace model ID |
-| `model.device` | `cpu` | `cpu`, `mps` (Apple GPU), or `cuda` |
-| `tiling.patch_size` | `512` | Patch size in pixels |
-| `tiling.overlap` | `64` | Overlap between patches (reduces edge artefacts) |
-| `tiling.blend_mode` | `linear` | `linear` (feathered) or `hard` |
-| `output.colormap` | `viridis` | Matplotlib colormap for height heatmap |
-| `output.embedding_colormap` | `turbo` | Colormap for embedding PCA maps |
-
----
-
-## Expected outputs
-
-| File | Description |
-|------|-------------|
-| `canopy_height_mosaic.tif` | Georeferenced float32 GeoTIFF, canopy height in metres |
-| `mosaic_visualisation.png` | 3-panel: RGB · height heatmap · DINOv3 embeddings PCA |
-| `mosaic_canopy_height.png` | Height heatmap only (with colourbar) |
-| `mosaic_embeddings_pca.png` | Full-scene DINOv3 embedding PCA (paper-style figure) |
-| `patches/patch_NNNN.png` | Per-patch 3-panel: RGB · height · embedding |
+```text
+openCHM/
+├── run_inference.py
+├── config.yaml
+├── environment.yml
+├── pipeline/
+│   ├── model.py
+│   ├── tiling.py
+│   ├── inference.py
+│   ├── visualise.py
+│   └── runner.py
+├── scripts/
+│   ├── create_test_image.py
+│   └── fetch_test_image.py
+└── data/
+    ├── input/
+    └── output/
+```
 
 ---
 
-## Useful links
+## ⚠️ Known Limitations & Future Work
 
-| Resource | URL |
-|----------|-----|
-| CHMv2 paper | https://arxiv.org/abs/2603.06382 |
-| DINOv3 paper | https://arxiv.org/abs/2508.10104 |
-| DINOv3 GitHub | https://github.com/facebookresearch/dinov3 |
-| HuggingFace weights | https://huggingface.co/facebook/dinov3-vitl16-chmv2-dpt-head |
-| HuggingFace model docs | https://huggingface.co/docs/transformers/main/en/model_doc/chmv2 |
-| Meta DINOv3 weight request | https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/ |
-| Copernicus Sentinel-2 data | https://dataspace.copernicus.eu/ |
-| CHMv2 inference notebook | https://github.com/facebookresearch/dinov3/tree/main/notebooks |
+- **Interpolation ceiling:** Upscaling 10 m input improves model compatibility, but does not create new physical detail.
+- **Terrain/shadow sensitivity:** Deep topographic shadows can still bias predictions in complex terrain.
+- **Calibration roadmap:** Future versions can add GEDI-based calibration for tighter biome-specific scaling.
+- **Cloud/shadow masking roadmap:** Scene Classification Layer (SCL) masking can be integrated as a pre-processing extension.
 
 ---
 
-## Troubleshooting
+## 📚 Acknowledgements & References
 
-**`ImportError: cannot import name 'CHMv2ForDepthEstimation'`**
-→ Upgrade transformers: `pip install --upgrade transformers`  (needs ≥ 4.56.0)
+- CHMv2 paper: [Tollefson et al. (arXiv:2603.06382)](https://arxiv.org/abs/2603.06382)
+- DINOv3 paper: [arXiv:2508.10104](https://arxiv.org/abs/2508.10104)
+- Foundation repo: [facebookresearch/dinov3](https://github.com/facebookresearch/dinov3)
+- Model weights: [facebook/dinov3-vitl16-chmv2-dpt-head](https://huggingface.co/facebook/dinov3-vitl16-chmv2-dpt-head)
+- Data source option: [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/)
 
-**Out of memory on M1**
-→ Reduce `tiling.patch_size` in config.yaml to `256`
-
-**MPS errors**
-→ Set `model.device: "cpu"` in config.yaml
-
-**Blank/zero canopy height output**
-→ Your image might have no vegetation or very low GSD. Try a forest-dense area.
+Built as a spatial measurement engine for geospatial AI workflows.
