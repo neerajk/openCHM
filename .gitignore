@@ -1,0 +1,43 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache / build
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Testing / tooling cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Local model/data artifacts
+data/output/
+data/input/*.tif
+data/input/*.tiff
+data/input/*.aux.xml
+
+# Keep documentation in data folders
+!data/input/README.txt

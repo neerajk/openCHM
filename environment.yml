@@ -1,0 +1,35 @@
+name: chmv2
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      # PyTorch — CPU/MPS build for M1 Mac
+      - torch
+      - torchvision
+      
+      # HuggingFace stack
+      - transformers>=4.56.0  # Required for CHMv2 architecture
+      - huggingface_hub
+      - accelerate
+      
+      # Core Geospatial & Planetary Computer
+      - rasterio
+      - pyproj
+      - planetary-computer
+      - pystac-client
+      - odc-stac
+      - rioxarray
+      - xarray
+      
+      # Image / Array / Math
+      - Pillow
+      - numpy<2.0.0           # Critical: Prevents NumPy 2.0 compatibility breaks
+      - scipy
+      
+      # Visualisation & Utilities
+      - matplotlib
+      - scikit-learn
+      - tqdm
+      - PyYAML

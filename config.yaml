@@ -1,0 +1,39 @@
+# ============================================================
+# CHMv2 Canopy Height Inference — Configuration
+# ============================================================
+
+# ----- Input -----
+input:
+  image_path: "data/input/sentinel2_rgb.tif"   # Path to your GeoTIFF (3-band RGB)
+  band_order: [1, 2, 3]                        # Rasterio band indices (1-based) for R, G, B
+  upscale_factor: 5                            # NEW: Scales 10m Sentinel-2 to 2m model resolution
+
+# ----- Model -----
+model:
+  # HuggingFace model ID — weights auto-downloaded, no request form needed
+  hf_model_id: "facebook/dinov3-vitl16-chmv2-dpt-head"
+  device: "mps"           # UPDATED: "mps" uses your M1 Apple Metal GPU
+  dtype: "float32"        # "float32" recommended for CPU/MPS stability
+  batch_size: 4           # NEW: Processes 4 patches at once to speed up M1 inference
+
+# ----- Patch / Tiling -----
+tiling:
+  patch_size: 512         # Pixels per patch (H x W). 512 is a safe default for 16GB RAM.
+  overlap: 64             # Overlap in pixels between patches (helps edge blending)
+  blend_mode: "linear"    # "linear" (feathered) or "hard" (no blending)
+
+# ----- Output -----
+output:
+  output_dir: "data/output"
+  save_canopy_tif: true         # Georeferenced canopy height GeoTIFF (metres)
+  save_mosaic_tif: true         # Full-scene mosaicked canopy height GeoTIFF
+  save_patch_visuals: true      # Per-patch PNG: RGB + heatmap side-by-side
+  save_mosaic_visual: true      # Full-scene mosaic PNG visualisation
+  save_embedding_heatmap: true  # PCA embedding heatmap (like paper figures)
+  colormap: "viridis"           # Matplotlib colormap for canopy height heatmap
+  embedding_colormap: "turbo"   # Colormap for embedding/feature visualisation
+
+# ----- Logging -----
+logging:
+  verbose: true
+  progress_bar: true
