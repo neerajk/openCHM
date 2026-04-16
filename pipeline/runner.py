@@ -128,7 +128,7 @@ class EsriPatchInferencePipeline:
         cfg = self.cfg
         
         # ── 0. Prepare output directories ──────────────────────────────────
-        out_dir = Path(cfg["output"]["output_dir"]) / "esri_results"
+        out_dir = Path(cfg["output"]["output_dir"]) / "esri_iirs_results"
         out_dir.mkdir(parents=True, exist_ok=True)
 
         # ── 1. Load model ───────────────────────────────────────────────────

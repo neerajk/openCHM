@@ -36,6 +36,8 @@ coverage.xml
 # Local model/data artifacts
 data/output/
 data/input/*.tif
+data/input/esri_iirs2/*.png
+data/input/esri_iirs/*.png
 data/input/*.tiff
 data/input/*.aux.xml
 data/input/esri_patches/*.png

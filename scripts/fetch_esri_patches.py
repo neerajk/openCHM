@@ -1,10 +1,11 @@
-import os
-import math
-import argparse
-import requests
-from PIL import Image
-import io
-from tqdm import tqdm
+"""
+
+generates 512x512 PNG patches from ESRI World Imagery tiles for use in the pipeline.
+Usage:
+    python scripts/fetch_esri_patches.py --box 78.05 30.40 78.10 30.45 --zoom 18 --out_dir data/input/esri_patches
+    python scripts/fetch_esri_patches.py --bbox 78.040 30.335 78.050 30.345 --zoom 18 --out_dir data/input/esri_iirs
+"""
+
 
 # ==========================================
 # 🗺️ TILE MATH & FETCHING LOGIC
